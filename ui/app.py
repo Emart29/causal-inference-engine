@@ -267,7 +267,10 @@ def page_assumptions() -> None:
              "estimates do not change materially.",
     )
 
-    if st.button("Run the analysis", type="primary") or st.session_state.report is None:
+    # Only an explicit click starts the work. Running whenever no report exists
+    # restarts the analysis on every rerun, so any interaction during the minute
+    # it takes would begin it again from scratch.
+    if st.button("Run the analysis", type="primary"):
         with st.spinner("Estimating, then attacking the estimate..."):
             runner = AnalysisRunner(n_boot=60 if thorough else 30)
             st.session_state.report = runner.run(
@@ -283,7 +286,11 @@ def page_assumptions() -> None:
 
     report = st.session_state.report
     if report is None or report.assumption_checks is None:
-        st.info("Run the analysis to see the checks.")
+        st.info(
+            "Press **Run the analysis** to estimate the effect and test the "
+            "assumptions behind it. This takes about a minute, because every "
+            "estimate is bootstrapped and then attacked with robustness checks."
+        )
         return
 
     checks = report.assumption_checks

@@ -87,7 +87,10 @@ def plot_forest(
     Returns:
         The assembled figure.
     """
-    fig, ax = plt.subplots(figsize=(8, max(2.5, 0.75 * len(results) + 1.5)))
+    # Kept deliberately short per row: stretched to a full container width, a
+    # taller figure pushes the estimates table and robustness checks below the
+    # fold, which is where the evidence for the number actually lives.
+    fig, ax = plt.subplots(figsize=(9, max(2.2, 0.42 * len(results) + 1.2)))
     positions = np.arange(len(results))[::-1]
 
     for pos, result in zip(positions, results):
@@ -159,7 +162,7 @@ def plot_love(
     Returns:
         The assembled figure.
     """
-    fig, ax = plt.subplots(figsize=(8, max(2.5, 0.45 * len(smd_before) + 1.8)))
+    fig, ax = plt.subplots(figsize=(9, max(2.2, 0.38 * len(smd_before) + 1.4)))
     order = smd_before.sort_values("abs_smd")
     positions = np.arange(len(order))
 
@@ -228,7 +231,7 @@ def plot_propensity_overlap(
     Returns:
         The assembled figure.
     """
-    fig, ax = plt.subplots(figsize=(8, 3.6))
+    fig, ax = plt.subplots(figsize=(9, 3.0))
     scores = np.asarray(propensity_scores)
     treated = np.asarray(treatment) == 1
     bins = np.linspace(0, 1, 41)
@@ -261,7 +264,7 @@ def plot_segment_effects(
     Returns:
         The assembled figure.
     """
-    fig, ax = plt.subplots(figsize=(8, max(2.5, 0.6 * len(segment_table) + 1.6)))
+    fig, ax = plt.subplots(figsize=(9, max(2.2, 0.45 * len(segment_table) + 1.3)))
     order = segment_table.sort_values("mean_effect")
     positions = np.arange(len(order))
     colors = [NEGATIVE if value < 0 else POSITIVE for value in order["mean_effect"]]
@@ -322,7 +325,7 @@ def plot_cate_distribution(
     Returns:
         The assembled figure.
     """
-    fig, ax = plt.subplots(figsize=(8, 3.6))
+    fig, ax = plt.subplots(figsize=(9, 3.0))
     values = np.asarray(cate)
 
     counts, bins, patches = ax.hist(values, bins=40, color=POSITIVE, zorder=2)
@@ -358,7 +361,7 @@ def plot_uplift_curve(curve: dict, title: str = "Value of targeting by predicted
     Returns:
         The assembled figure.
     """
-    fig, ax = plt.subplots(figsize=(8, 4))
+    fig, ax = plt.subplots(figsize=(9, 3.4))
     fractions = np.asarray(curve["fractions"]) * 100
 
     ax.plot(fractions, curve["gains"], color=SERIES_1, linewidth=2.0, label="Targeted by predicted effect", zorder=3)
@@ -386,7 +389,7 @@ def plot_event_study(event_table: pd.DataFrame, treat_period: int, title: str = 
     Returns:
         The assembled figure.
     """
-    fig, ax = plt.subplots(figsize=(8, 4))
+    fig, ax = plt.subplots(figsize=(9, 3.4))
     periods = event_table["period"].to_numpy()
 
     ax.fill_between(
@@ -428,7 +431,7 @@ def plot_sensitivity(grid: pd.DataFrame, original_effect: float, title: str = "S
     Returns:
         The assembled figure.
     """
-    fig, ax = plt.subplots(figsize=(8, 4))
+    fig, ax = plt.subplots(figsize=(9, 3.4))
     colors = [POSITIVE if preserved else NEGATIVE for preserved in grid["sign_preserved"]]
 
     ax.plot(grid["strength"], grid["estimate"], color=SERIES_1, linewidth=2.0, zorder=2)
