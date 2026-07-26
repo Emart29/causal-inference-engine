@@ -312,7 +312,7 @@ def page_assumptions() -> None:
     table = balance.get("smd_table")
     if table is not None and not table.empty:
         st.subheader("Covariate balance")
-        st.pyplot(viz.plot_love(table), width="stretch")
+        st.pyplot(viz.plot_love(table), width="content")
 
     st.session_state.assumptions_seen = True
     st.info("Assumptions reviewed. The results page is now available.")
@@ -347,7 +347,7 @@ def page_results() -> None:
         )
 
     st.subheader("Estimates by method")
-    st.pyplot(viz.plot_forest(report.estimates, true_effect=true_effect), width="stretch")
+    st.pyplot(viz.plot_forest(report.estimates, true_effect=true_effect), width="content")
     st.dataframe(
         pd.DataFrame(
             [
@@ -363,6 +363,9 @@ def page_results() -> None:
         ),
         width="stretch",
         hide_index=True,
+        # Sized to the row count so every method is visible at once. The default
+        # height clips the last row behind a scrollbar, which hides a result.
+        height=(len(report.estimates) + 1) * 35 + 3,
     )
     st.caption(report.narrative.get("agreement", ""))
 
@@ -390,7 +393,7 @@ def page_results() -> None:
     if report.segments is not None and not report.segments.empty:
         st.subheader("Who it affects")
         st.write(report.narrative.get("heterogeneity", ""))
-        st.pyplot(viz.plot_segment_effects(report.segments), width="stretch")
+        st.pyplot(viz.plot_segment_effects(report.segments), width="content")
 
         learner = XLearner(n_boot=0)
         cate = learner.predict_cate(
@@ -399,14 +402,14 @@ def page_results() -> None:
             st.session_state.outcome,
             st.session_state.covariates,
         )
-        st.pyplot(viz.plot_cate_distribution(cate), width="stretch")
+        st.pyplot(viz.plot_cate_distribution(cate), width="content")
 
         curve = uplift_curve(
             cate,
             st.session_state.df[st.session_state.outcome].to_numpy(),
             st.session_state.df[st.session_state.treatment].to_numpy(),
         )
-        st.pyplot(viz.plot_uplift_curve(curve), width="stretch")
+        st.pyplot(viz.plot_uplift_curve(curve), width="content")
         st.caption(top_k_targeting(cate, 30)["interpretation"])
 
 
