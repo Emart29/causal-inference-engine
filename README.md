@@ -89,7 +89,10 @@ The average effect is a positive +1.9, which on its own would hide that a quarte
 
 ![Assumptions](docs/ui-assumptions.png)
 
-### Effect sizes stay behind the assumptions page
+### Skip the assumptions and there is deliberately nothing to read
+
+Jumping straight to results without opening the assumptions page shows no effect
+size at all — only the reason one is being withheld. The page is empty on purpose.
 
 ![Gating](docs/ui-gating.png)
 
