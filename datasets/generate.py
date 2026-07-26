@@ -367,6 +367,109 @@ def make_no_effect(n: int = 5000, seed: int = 42) -> tuple[pd.DataFrame, dict]:
     }
 
 
+def make_realistic(
+    n: int = 5000,
+    true_ate: float = 0.15,
+    noise_sd: float = 3.0,
+    hidden_confounding: float = 0.8,
+    seed: int = 42,
+) -> tuple[pd.DataFrame, dict]:
+    """Generate data with the properties that make real analyses hard.
+
+    The other generators isolate one problem at a time under favourable
+    conditions, which is what makes them useful for checking that an estimator
+    is implemented correctly. Real data is not favourable, and this generator
+    combines the four things that actually break analyses in practice:
+
+    * a small effect relative to the noise, so the signal is easy to lose,
+    * a confounder that is deliberately absent from the returned data, so no
+      adjustment can fully remove the bias,
+    * measurement error on the confounder that *is* observed, so even the
+      variable being controlled for is only a proxy,
+    * nonlinear, interacting relationships that a linear propensity model
+      cannot represent exactly.
+
+    Estimators should still beat the naive comparison here, but they will not
+    land on the true effect, and their intervals will sometimes miss it. That is
+    the honest picture of what these methods deliver on observational data.
+
+    Args:
+        n: Number of units to generate.
+        true_ate: True average effect, deliberately small next to ``noise_sd``.
+        noise_sd: Standard deviation of the outcome noise.
+        hidden_confounding: Strength of the confounder excluded from the data.
+        seed: Random seed for reproducibility.
+
+    Returns:
+        Tuple of the generated frame and its ground truth. The ground truth
+        records that residual bias is expected rather than treating it as a
+        failure.
+    """
+    rng = np.random.default_rng(seed)
+
+    # Observed, but only as a noisy proxy for the quantity that matters.
+    true_quality = rng.normal(0, 1, n)
+    observed_quality = true_quality + rng.normal(0, 0.6, n)
+
+    # Never returned: this is the confounder the analyst does not have.
+    unobserved_motivation = rng.normal(0, 1, n)
+
+    tenure = rng.gamma(shape=2.0, scale=12.0, size=n)
+    region = rng.choice([0, 1, 2, 3], size=n).astype(float)
+
+    # Assignment depends nonlinearly on quality and on the hidden confounder, so
+    # a linear propensity model is misspecified even before the missing variable.
+    logit = (
+        0.7 * true_quality
+        + 0.4 * true_quality**2
+        + hidden_confounding * unobserved_motivation
+        + 0.01 * tenure
+        - 0.9
+    )
+    treatment = rng.binomial(1, 1.0 / (1.0 + np.exp(-logit)))
+
+    # The outcome depends on the same hidden factor and on an interaction, so
+    # some of the treated/untreated gap can never be attributed correctly.
+    outcome = (
+        8.0
+        + true_ate * treatment
+        + 1.2 * true_quality
+        + 0.5 * np.sin(tenure / 10.0)
+        + hidden_confounding * unobserved_motivation
+        + 0.3 * true_quality * (region == 1)
+        + rng.normal(0, noise_sd, n)
+    )
+
+    df = pd.DataFrame(
+        {
+            "observed_quality": observed_quality,
+            "tenure": tenure,
+            "region": region,
+            "treatment": treatment,
+            "outcome": outcome,
+        }
+    )
+
+    naive = _naive_difference(df, "treatment", "outcome")
+    return df, {
+        "true_ate": true_ate,
+        "naive_estimate": naive,
+        "bias": naive - true_ate,
+        "treatment": "treatment",
+        "outcome": "outcome",
+        "covariates": ["observed_quality", "tenure", "region"],
+        "hidden_confounder": "motivation (excluded from the data by design)",
+        "expect_residual_bias": True,
+        "why": (
+            "The effect is small next to the noise, the variable that drives "
+            "assignment is only observed as a noisy proxy, and a second driver is "
+            "missing from the data entirely. Adjustment reduces the bias but "
+            "cannot remove it, which is the normal situation with observational "
+            "data rather than a defect in the method."
+        ),
+    }
+
+
 #: Registry of every generator, keyed by the name shown in the interface.
 DATASET_REGISTRY: dict[str, Callable[..., tuple[pd.DataFrame, dict]]] = {
     "confounded": make_confounded,
@@ -374,6 +477,7 @@ DATASET_REGISTRY: dict[str, Callable[..., tuple[pd.DataFrame, dict]]] = {
     "did_panel": make_did_panel,
     "instrumental": make_iv,
     "no_effect": make_no_effect,
+    "realistic": make_realistic,
 }
 
 #: Short human-readable description of what each dataset demonstrates.
@@ -383,6 +487,7 @@ DATASET_DESCRIPTIONS: dict[str, str] = {
     "did_panel": "Panel data with parallel pre-treatment trends for difference-in-differences.",
     "instrumental": "Unobserved confounding that only an instrument can overcome.",
     "no_effect": "The treatment does nothing, but the raw comparison suggests otherwise.",
+    "realistic": "Small effect, heavy noise, a proxy-measured confounder, and one that is missing entirely.",
 }
 
 
