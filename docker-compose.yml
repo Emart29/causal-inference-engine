@@ -1,0 +1,27 @@
+services:
+  ui:
+    build: .
+    command: streamlit run ui/app.py --server.port=8501 --server.address=0.0.0.0
+    environment:
+      # PostgreSQL and MinIO come from the shared infrastructure stack; this
+      # project adds no database container of its own.
+      POSTGRES_URL: postgresql+asyncpg://postgres:postgres@ml-postgres:5432/causal
+      MINIO_ENDPOINT: ml-minio:9000
+    ports:
+      - "8501:8501"
+    networks:
+      - infra
+
+  # Runs the ground truth suite and exits, so a fresh clone can confirm the
+  # estimators recover known effects before anyone trusts the interface.
+  validate:
+    build: .
+    command: python -m validation.ground_truth
+    networks:
+      - infra
+    profiles: ["validate"]
+
+networks:
+  infra:
+    external: true
+    name: ml-platform-infra_default

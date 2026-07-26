@@ -1,0 +1,15 @@
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.egg-info/
+.env
+.git/
+.gitignore
+docs/
+*.pdf
+datasets/*.csv
+data/
+*.log
+.pytest_cache/
+.playwright-mcp/

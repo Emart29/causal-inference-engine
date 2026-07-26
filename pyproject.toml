@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "causal-inference-engine"
+version = "0.1.0"
+description = "Estimate what actually caused what, with the assumptions, robustness checks, and plain-English caveats attached"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+
+[project.scripts]
+causal-validate = "validation.ground_truth:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = [
+    "datasets*",
+    "discovery*",
+    "estimation*",
+    "validation*",
+    "reporting*",
+    "store*",
+    "db*",
+    "ui*",
+]
