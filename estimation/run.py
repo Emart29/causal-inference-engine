@@ -37,6 +37,18 @@ ADJUSTMENT_METHODS = {
     "x_learner": XLearner,
 }
 
+#: Methods worth running by default. The remaining learners mostly restate what
+#: the X-learner already shows, and each bootstrap resample refits several
+#: gradient boosting models, so including them all multiplies runtime for very
+#: little extra information.
+DEFAULT_METHODS = ("psm", "ipw", "x_learner")
+
+#: Learners that refit machine learning models on every resample. They are given
+#: a smaller bootstrap budget because their cost per resample is an order of
+#: magnitude higher than the propensity methods, and the interval width they
+#: produce stabilises long before the point estimate changes.
+EXPENSIVE_METHODS = frozenset({"s_learner", "t_learner", "x_learner"})
+
 
 class AnalysisRunner:
     """Run every applicable estimator on a dataset and assemble the results."""
@@ -133,13 +145,14 @@ class AnalysisRunner:
         )
 
         estimates: list[EffectResult] = []
-        selected = methods or list(ADJUSTMENT_METHODS)
+        selected = methods or list(DEFAULT_METHODS)
 
         for name in selected:
             estimator_class = ADJUSTMENT_METHODS.get(name)
             if estimator_class is None:
                 continue
-            estimator = estimator_class(n_boot=self.n_boot, seed=self.seed)
+            budget = max(self.n_boot // 3, 20) if name in EXPENSIVE_METHODS else self.n_boot
+            estimator = estimator_class(n_boot=budget, seed=self.seed)
             try:
                 estimates.append(
                     estimator.estimate(df, treatment, outcome, adjustment_set)
@@ -204,7 +217,9 @@ class AnalysisRunner:
         segments = None
         if segment_col and segment_col in df.columns:
             try:
-                learner = XLearner(n_boot=self.n_boot, seed=self.seed)
+                # Only the per-unit predictions are needed here, and those involve
+                # no resampling, so no bootstrap budget is spent on this step.
+                learner = XLearner(n_boot=0, seed=self.seed)
                 cate = learner.predict_cate(df, treatment, outcome, adjustment_set)
                 segments = cate_by_segment(cate, df, segment_col)
             except Exception:

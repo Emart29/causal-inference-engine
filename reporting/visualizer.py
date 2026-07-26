@@ -479,15 +479,23 @@ def plot_dag(dag, treatment: str, outcome: str, roles: dict | None = None) -> st
     net = Network(height="520px", width="100%", directed=True, bgcolor=SURFACE, font_color=INK_PRIMARY)
     net.set_options('{"physics": {"solver": "forceAtlas2Based", "stabilization": {"iterations": 150}}}')
 
+    def _label(name: str, role: str) -> str:
+        """Name the node, adding its role only when that says something new.
+
+        A column called ``treatment`` would otherwise render as
+        ``treatment (treatment)``, which reads as a mistake.
+        """
+        return name if name.lower() == role.lower() else f"{name}\n({role})"
+
     for node in dag.nodes:
         if node == treatment:
-            color, shape, label = SERIES_1, "box", f"{node}\n(treatment)"
+            color, shape, label = SERIES_1, "box", _label(node, "treatment")
         elif node == outcome:
-            color, shape, label = "#008300", "box", f"{node}\n(outcome)"
+            color, shape, label = "#008300", "box", _label(node, "outcome")
         else:
             role = (roles or {}).get(node, {}).get("role", "irrelevant")
             color, shape = role_colors.get(role, GRID), "dot"
-            label = f"{node}\n({role})" if roles else node
+            label = _label(node, role.replace("_", " ")) if roles else node
         net.add_node(node, label=label, color=color, shape=shape, size=22)
 
     for cause, effect in dag.edges:
